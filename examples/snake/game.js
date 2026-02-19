@@ -397,16 +397,12 @@ function drawSnake() {
         const x = segment.x * CONFIG.CELL_SIZE;
         const y = segment.y * CONFIG.CELL_SIZE;
         
-        // La cabeza es ligeramente más definida
+        // Dibujar segmento con el mismo tamaño para todos
+        ctx.fillRect(x + 3, y + 3, CONFIG.CELL_SIZE - 6, CONFIG.CELL_SIZE - 6);
+        
+        // Solo la cabeza tiene ojos y lengua
         if (index === 0) {
-            // Cuerpo de la cabeza
-            ctx.fillRect(x + 2, y + 2, CONFIG.CELL_SIZE - 4, CONFIG.CELL_SIZE - 4);
-            
-            // Dibujar ojos y lengua según la dirección
             drawHeadFeatures(x, y, gameState.direction);
-        } else {
-            // Cuerpo de la serpiente
-            ctx.fillRect(x + 3, y + 3, CONFIG.CELL_SIZE - 6, CONFIG.CELL_SIZE - 6);
         }
     });
 }
