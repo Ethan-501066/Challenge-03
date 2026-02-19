@@ -1,11 +1,11 @@
 /**
  * ============================================
- * SNAKE: LOOP DE PRECISIÓN
+ * SNAKE: LOOP DE PRECISIÓN (Basado en Turnos)
  * ============================================
  * 
  * Juego minimalista enfocado en optimización.
- * La serpiente no crece. El desafío es encontrar
- * el camino más corto a la manzana.
+ * La serpiente se mueve por turnos (un movimiento por tecla presionada).
+ * El desafío es encontrar el camino más corto a la manzana.
  * 
  * Autor: Challenge 03
  * Tecnología: HTML5 Canvas + Vanilla JavaScript
@@ -22,9 +22,6 @@ const CONFIG = {
     
     // Tamaño de cada celda en píxeles
     CELL_SIZE: 30,
-    
-    // Velocidad de juego (milisegundos entre actualizaciones)
-    GAME_SPEED: 75,
     
     // Colores del juego
     COLORS: {
@@ -73,8 +70,7 @@ const gameState = {
     
     // Control de juego
     isGameOver: false,
-    isPaused: false,
-    lastUpdateTime: 0
+    isPaused: false
 };
 
 // ============================================
@@ -163,6 +159,7 @@ function generateTraps() {
 
 /**
  * Actualiza el estado del juego un paso
+ * Esta función se ejecuta una sola vez por turno (cuando el jugador presiona una tecla)
  */
 function updateGame() {
     if (gameState.isGameOver || gameState.isPaused) return;
@@ -216,6 +213,9 @@ function updateGame() {
     if (positionEquals(newHead, gameState.apple)) {
         eatApple();
     }
+    
+    // Renderizar después del movimiento
+    render();
 }
 
 /**
@@ -260,7 +260,7 @@ function resetLevel() {
     // Regenerar trampas para el nivel actual
     generateTraps();
     
-    showMessage('Nivel reiniciado. Movimiento automático activado.');
+    showMessage('Nivel reiniciado. Un movimiento por tecla.');
     updateDisplay();
     render();
 }
@@ -280,7 +280,7 @@ function resetGame() {
     gameState.isGameOver = false;
     gameState.isPaused = false;
     
-    showMessage('Movimiento automático. Usa flechas o WASD para girar');
+    showMessage('Movimiento por turno. Usa flechas o WASD.');
     updateDisplay();
     render();
 }
@@ -437,30 +437,38 @@ document.addEventListener('keydown', (event) => {
     
     const key = event.key.toLowerCase();
     
-    // Flechas del teclado
+    // Flechas del teclado - Ejecutar movimiento inmediatamente
     if (event.key === 'ArrowUp') {
         gameState.nextDirection = { x: 0, y: -1 };
+        updateGame();
         event.preventDefault();
     } else if (event.key === 'ArrowDown') {
         gameState.nextDirection = { x: 0, y: 1 };
+        updateGame();
         event.preventDefault();
     } else if (event.key === 'ArrowLeft') {
         gameState.nextDirection = { x: -1, y: 0 };
+        updateGame();
         event.preventDefault();
     } else if (event.key === 'ArrowRight') {
         gameState.nextDirection = { x: 1, y: 0 };
+        updateGame();
         event.preventDefault();
     }
     
-    // Teclas WASD
+    // Teclas WASD - Ejecutar movimiento inmediatamente
     if (key === 'w') {
         gameState.nextDirection = { x: 0, y: -1 };
+        updateGame();
     } else if (key === 's') {
         gameState.nextDirection = { x: 0, y: 1 };
+        updateGame();
     } else if (key === 'a') {
         gameState.nextDirection = { x: -1, y: 0 };
+        updateGame();
     } else if (key === 'd') {
         gameState.nextDirection = { x: 1, y: 0 };
+        updateGame();
     }
     
     // Pausa con espacio
@@ -473,31 +481,10 @@ document.addEventListener('keydown', (event) => {
 });
 
 // ============================================
-// LOOP PRINCIPAL DEL JUEGO
-// ============================================
-
-function gameLoop() {
-    const now = Date.now();
-    
-    // Actualizar solo si ha pasado suficiente tiempo
-    if (now - gameState.lastUpdateTime > CONFIG.GAME_SPEED) {
-        updateGame();
-        gameState.lastUpdateTime = now;
-    }
-    
-    // Renderizar siempre (para suavidad visual)
-    render();
-    
-    // Establecer siguiente iteración
-    requestAnimationFrame(gameLoop);
-}
-
-// ============================================
 // INICIO DEL JUEGO
 // ============================================
 
 (function init() {
-    console.log('🐍 Iniciando Snake: Loop de Precisión');
+    console.log('🐍 Iniciando Snake: Loop de Precisión (Basado en Turnos)');
     resetGame();
-    gameLoop();
 })();
