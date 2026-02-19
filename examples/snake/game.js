@@ -164,14 +164,8 @@ function generateTraps() {
 function updateGame() {
     if (gameState.isGameOver || gameState.isPaused) return;
     
-    // Aplicar la siguiente dirección (si no es un giro de 180°)
-    const newDir = gameState.nextDirection;
-    
-    // Validar que no sea un giro de 180°
-    if (newDir.x + gameState.direction.x !== 0 || 
-        newDir.y + gameState.direction.y !== 0) {
-        gameState.direction = newDir;
-    }
+    // Aplicar la dirección presionada (sin validaciones que bloqueen giros)
+    gameState.direction = gameState.nextDirection;
     
     // Calcular nueva posición de la cabeza
     const head = gameState.snake[0];
