@@ -246,7 +246,27 @@ function endGame(reason) {
 }
 
 /**
- * Reinicia el juego
+ * Reinicia solo el nivel actual (sin perder progreso)
+ */
+function resetLevel() {
+    gameState.snake = [{ x: 7, y: 7 }];
+    gameState.direction = { x: 1, y: 0 };
+    gameState.nextDirection = { x: 1, y: 0 };
+    gameState.apple = { x: 12, y: 7 };
+    gameState.steps = 0;
+    gameState.isGameOver = false;
+    gameState.isPaused = false;
+    
+    // Regenerar trampas para el nivel actual
+    generateTraps();
+    
+    showMessage('Nivel reiniciado. Movimiento automático activado.');
+    updateDisplay();
+    render();
+}
+
+/**
+ * Reinicia el juego completamente
  */
 function resetGame() {
     gameState.snake = [{ x: 7, y: 7 }];
@@ -260,7 +280,7 @@ function resetGame() {
     gameState.isGameOver = false;
     gameState.isPaused = false;
     
-    showMessage('Usa flechas o WASD para mover');
+    showMessage('Movimiento automático. Usa flechas o WASD para girar');
     updateDisplay();
     render();
 }
@@ -409,9 +429,9 @@ function drawTraps() {
 // ============================================
 
 document.addEventListener('keydown', (event) => {
-    // Si el juego terminó, reiniciar al presionar cualquier tecla
+    // Si el juego terminó, reiniciar el nivel actual al presionar cualquier tecla
     if (gameState.isGameOver) {
-        resetGame();
+        resetLevel();
         return;
     }
     
