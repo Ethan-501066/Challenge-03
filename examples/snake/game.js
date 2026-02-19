@@ -23,18 +23,16 @@ const CONFIG = {
     // Tamaño de cada celda en píxeles
     CELL_SIZE: 30,
     
-    // Colores del juego (Estilo Jardín)
+    // Colores del juego
     COLORS: {
-        BACKGROUND: '#0a0a0a',
-        GRID: '#1a3a1a',
-        GRID_LIGHT: '#2d5a2d',
-        BOARD: '#0d1a0d',
-        SNAKE_HEAD: '#5eead4',
-        SNAKE_BODY: '#4ade80',
-        APPLE: '#ef4444',
-        APPLE_SHINE: '#ff6666',
-        TRAP: '#2d5a3a',
-        TRAP_BORDER: '#3d7a4a'
+        BACKGROUND: '#0d2610',      // Verde muy oscuro (fondo tipo jardín)
+        GRID: '#1a4d2e',            // Verde oscuro para el grid
+        SNAKE: '#4ade80',           // Verde brillante (serpiente)
+        APPLE: '#ef4444',           // Rojo (manzana)
+        TRAP: '#2d5a3d',            // Verde más oscuro (trampas)
+        TRAP_BORDER: '#3d7a4d',     // Borde de trampas
+        EYES: '#1a1a1a',            // Negro para ojos
+        TONGUE: '#ff99cc'           // Rosa suave para lengua
     },
     
     // Trampas por nivel (número de trampas que aparecen)
@@ -71,6 +69,7 @@ const gameState = {
     level: 1,
     applesEaten: 0,
     steps: 0,
+    targetLength: 1,  // El tamaño objetivo de la serpiente (siempre = nivel)
     
     // Control de juego
     isGameOver: false,
@@ -157,6 +156,25 @@ function generateTraps() {
     }
 }
 
+/**
+ * Ajusta el tamaño de la serpiente al targetLength actual
+ */
+function adjustSnakeSize() {
+    const currentLength = gameState.snake.length;
+    const targetLength = gameState.targetLength;
+    
+    if (currentLength < targetLength) {
+        // Agregar segmentos al final (crecimiento)
+        const tail = gameState.snake[gameState.snake.length - 1];
+        for (let i = currentLength; i < targetLength; i++) {
+            gameState.snake.push({ ...tail });
+        }
+    } else if (currentLength > targetLength) {
+        // Remover segmentos del final (encogimiento)
+        gameState.snake = gameState.snake.slice(0, targetLength);
+    }
+}
+
 // ============================================
 // LÓGICA DE ACTUALIZACIÓN
 // ============================================
@@ -203,11 +221,15 @@ function updateGame() {
         return;
     }
     
-    // Mover la serpiente (CRECE al comer manzana)
+    // Mover la serpiente (siempre elimina la cola, no crece)
     gameState.snake.unshift(newHead);
+    gameState.snake.pop();  // Eliminar la cola para no crecer durante movimiento
+    
+    // Verificar colisión con manzana
+    const ateApple = positionEquals(newHead, gameState.apple);
     
     // 4. Colisión con manzana
-    if (positionEquals(newHead, gameState.apple)) {
+    if (ateApple) {
         eatApple();
     }
     
@@ -221,6 +243,10 @@ function updateGame() {
 function eatApple() {
     gameState.applesEaten++;
     gameState.level = gameState.applesEaten + 1;
+    gameState.targetLength = gameState.level;  // El tamaño objetivo ahora es el nivel actual
+    
+    // Ajustar el tamaño de la serpiente al nuevo nivel
+    adjustSnakeSize();
     
     // Mover la manzana a una nueva posición
     const occupied = getOccupiedPositions();
@@ -250,8 +276,12 @@ function resetLevel() {
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
     gameState.steps = 0;
+    gameState.targetLength = gameState.level;  // El tamaño objetivo es el nivel actual
     gameState.isGameOver = false;
     gameState.isPaused = false;
+    
+    // Ajustar el tamaño de la serpiente al nivel actual
+    adjustSnakeSize();
     
     // La manzana y las trampas mantienen sus posiciones
     
@@ -272,6 +302,7 @@ function resetGame() {
     gameState.level = 1;
     gameState.applesEaten = 0;
     gameState.steps = 0;
+    gameState.targetLength = 1;  // Tamaño inicial: 1 bloque
     gameState.isGameOver = false;
     gameState.isPaused = false;
     
@@ -316,15 +347,19 @@ function showMessage(text, className = '') {
  * Dibuja el tablero completo
  */
 function render() {
-    // Fondo del tablero (negro)
+    // Fondo del tablero con patrón tipo jardín
     ctx.fillStyle = CONFIG.COLORS.BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Fondo del área de juego (verde muy oscuro)
-    ctx.fillStyle = CONFIG.COLORS.BOARD;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Agregar patrón sutil de puntos tipo jardín
+    ctx.fillStyle = '#1a4d2e';
+    for (let i = 0; i < canvas.width; i += CONFIG.CELL_SIZE * 2) {
+        for (let j = 0; j < canvas.height; j += CONFIG.CELL_SIZE * 2) {
+            ctx.fillRect(i + CONFIG.CELL_SIZE / 2, j + CONFIG.CELL_SIZE / 2, 2, 2);
+        }
+    }
     
-    // Grid con patrón suave tipo jardín
+    // Grid sutil con colores verde
     ctx.strokeStyle = CONFIG.COLORS.GRID;
     ctx.lineWidth = 0.5;
     
@@ -342,20 +377,6 @@ function render() {
         ctx.stroke();
     }
     
-    // Patrón decorativo sutil (líneas alternas más claras)
-    ctx.strokeStyle = CONFIG.COLORS.GRID_LIGHT;
-    ctx.lineWidth = 0.25;
-    ctx.globalAlpha = 0.3;
-    
-    for (let x = 0; x <= CONFIG.GRID_WIDTH; x += 2) {
-        ctx.beginPath();
-        ctx.moveTo(x * CONFIG.CELL_SIZE, 0);
-        ctx.lineTo(x * CONFIG.CELL_SIZE, canvas.height);
-        ctx.stroke();
-    }
-    
-    ctx.globalAlpha = 1;
-    
     // Dibujar trampas
     drawTraps();
     
@@ -370,78 +391,79 @@ function render() {
  * Dibuja la serpiente con ojos y lengua en la cabeza
  */
 function drawSnake() {
+    ctx.fillStyle = CONFIG.COLORS.SNAKE;
+    
     gameState.snake.forEach((segment, index) => {
         const x = segment.x * CONFIG.CELL_SIZE;
         const y = segment.y * CONFIG.CELL_SIZE;
         
-        // Cabeza: color más claro
+        // La cabeza es ligeramente más definida
         if (index === 0) {
-            ctx.fillStyle = CONFIG.COLORS.SNAKE_HEAD;
+            // Cuerpo de la cabeza
             ctx.fillRect(x + 2, y + 2, CONFIG.CELL_SIZE - 4, CONFIG.CELL_SIZE - 4);
             
-            // Dibujar ojos según la dirección
-            ctx.fillStyle = '#000000';
-            const eyeSize = 3;
-            
-            if (gameState.direction.x === 1) {
-                // Moviendo a la derecha
-                ctx.fillRect(x + 18, y + 8, eyeSize, eyeSize);
-                ctx.fillRect(x + 18, y + 19, eyeSize, eyeSize);
-                // Lengua
-                ctx.strokeStyle = '#ff6666';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(x + 25, y + 13);
-                ctx.lineTo(x + 28, y + 12);
-                ctx.lineTo(x + 28, y + 15);
-                ctx.closePath();
-                ctx.stroke();
-            } else if (gameState.direction.x === -1) {
-                // Moviendo a la izquierda
-                ctx.fillRect(x + 9, y + 8, eyeSize, eyeSize);
-                ctx.fillRect(x + 9, y + 19, eyeSize, eyeSize);
-                // Lengua
-                ctx.strokeStyle = '#ff6666';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(x + 5, y + 13);
-                ctx.lineTo(x + 2, y + 12);
-                ctx.lineTo(x + 2, y + 15);
-                ctx.closePath();
-                ctx.stroke();
-            } else if (gameState.direction.y === -1) {
-                // Moviendo hacia arriba
-                ctx.fillRect(x + 8, y + 9, eyeSize, eyeSize);
-                ctx.fillRect(x + 19, y + 9, eyeSize, eyeSize);
-                // Lengua
-                ctx.strokeStyle = '#ff6666';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(x + 13, y + 5);
-                ctx.lineTo(x + 12, y + 2);
-                ctx.lineTo(x + 15, y + 2);
-                ctx.closePath();
-                ctx.stroke();
-            } else if (gameState.direction.y === 1) {
-                // Moviendo hacia abajo
-                ctx.fillRect(x + 8, y + 18, eyeSize, eyeSize);
-                ctx.fillRect(x + 19, y + 18, eyeSize, eyeSize);
-                // Lengua
-                ctx.strokeStyle = '#ff6666';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(x + 13, y + 25);
-                ctx.lineTo(x + 12, y + 28);
-                ctx.lineTo(x + 15, y + 28);
-                ctx.closePath();
-                ctx.stroke();
-            }
+            // Dibujar ojos y lengua según la dirección
+            drawHeadFeatures(x, y, gameState.direction);
         } else {
-            // Cuerpo: color más oscuro
-            ctx.fillStyle = CONFIG.COLORS.SNAKE_BODY;
+            // Cuerpo de la serpiente
             ctx.fillRect(x + 3, y + 3, CONFIG.CELL_SIZE - 6, CONFIG.CELL_SIZE - 6);
         }
     });
+}
+
+/**
+ * Dibuja los rasgos de la cabeza (ojos y lengua) según la dirección
+ */
+function drawHeadFeatures(x, y, direction) {
+    const eyeSize = 2;
+    const cellCenter = CONFIG.CELL_SIZE / 2;
+    
+    if (direction.y === -1) {
+        // Moviéndose ARRIBA: ojos arriba, lengua abajo
+        drawEyes(x, y, 5, 5, eyeSize); // Ojos arriba
+        drawTongue(x + cellCenter, y + CONFIG.CELL_SIZE - 2, 0, -2); // Lengua hacia arriba
+    } else if (direction.y === 1) {
+        // Moviéndose ABAJO: ojos abajo, lengua arriba
+        drawEyes(x, y, 5, CONFIG.CELL_SIZE - 7, eyeSize); // Ojos abajo
+        drawTongue(x + cellCenter, y + 2, 0, 2); // Lengua hacia abajo
+    } else if (direction.x === -1) {
+        // Moviéndose IZQUIERDA: ojos izquierda, lengua derecha
+        drawEyes(x, y, 5, 5, eyeSize, true); // Ojos izquierda (vertical)
+        drawTongue(x + CONFIG.CELL_SIZE - 2, y + cellCenter, -2, 0); // Lengua hacia izquierda
+    } else if (direction.x === 1) {
+        // Moviéndose DERECHA: ojos derecha, lengua izquierda
+        drawEyes(x, y, CONFIG.CELL_SIZE - 7, 5, eyeSize, true); // Ojos derecha (vertical)
+        drawTongue(x + 2, y + cellCenter, 2, 0); // Lengua hacia derecha
+    }
+}
+
+/**
+ * Dibuja los ojos
+ */
+function drawEyes(x, y, x1, y1, size, vertical = false) {
+    ctx.fillStyle = CONFIG.COLORS.EYES;
+    if (vertical) {
+        // Ojos verticales (para movimiento horizontal)
+        ctx.fillRect(x + x1, y + 5, size, size);
+        ctx.fillRect(x + x1, y + CONFIG.CELL_SIZE - 7, size, size);
+    } else {
+        // Ojos horizontales (para movimiento vertical)
+        ctx.fillRect(x + 5, y + y1, size, size);
+        ctx.fillRect(x + CONFIG.CELL_SIZE - 7, y + y1, size, size);
+    }
+}
+
+/**
+ * Dibuja la lengua
+ */
+function drawTongue(startX, startY, offsetX, offsetY) {
+    ctx.strokeStyle = CONFIG.COLORS.TONGUE;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(startX + offsetX * 1.5, startY + offsetY * 1.5);
+    ctx.stroke();
 }
 
 /**
@@ -455,17 +477,17 @@ function drawApple() {
     ctx.fillRect(x + 5, y + 5, CONFIG.CELL_SIZE - 10, CONFIG.CELL_SIZE - 10);
     
     // Pequeño brillo en la manzana
-    ctx.fillStyle = CONFIG.COLORS.APPLE_SHINE;
+    ctx.fillStyle = '#ff6666';
     ctx.fillRect(x + 8, y + 8, 4, 4);
 }
 
 /**
- * Dibuja las trampas con estilo jardín
+ * Dibuja las trampas
  */
 function drawTraps() {
     ctx.fillStyle = CONFIG.COLORS.TRAP;
     ctx.strokeStyle = CONFIG.COLORS.TRAP_BORDER;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     
     gameState.traps.forEach(trap => {
         const x = trap.x * CONFIG.CELL_SIZE;
