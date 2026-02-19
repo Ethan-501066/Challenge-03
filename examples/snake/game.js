@@ -23,14 +23,18 @@ const CONFIG = {
     // Tamaño de cada celda en píxeles
     CELL_SIZE: 30,
     
-    // Colores del juego
+    // Colores del juego (Estilo Jardín)
     COLORS: {
-        BACKGROUND: '#111111',
-        GRID: '#1a1a1a',
-        SNAKE: '#4ade80',
+        BACKGROUND: '#0a0a0a',
+        GRID: '#1a3a1a',
+        GRID_LIGHT: '#2d5a2d',
+        BOARD: '#0d1a0d',
+        SNAKE_HEAD: '#5eead4',
+        SNAKE_BODY: '#4ade80',
         APPLE: '#ef4444',
-        TRAP: '#374151',
-        TRAP_BORDER: '#4b5563'
+        APPLE_SHINE: '#ff6666',
+        TRAP: '#2d5a3a',
+        TRAP_BORDER: '#3d7a4a'
     },
     
     // Trampas por nivel (número de trampas que aparecen)
@@ -199,9 +203,8 @@ function updateGame() {
         return;
     }
     
-    // Mover la serpiente (sin crecer, solo reposicionarse)
+    // Mover la serpiente (CRECE al comer manzana)
     gameState.snake.unshift(newHead);
-    gameState.snake.pop(); // Eliminar el último segmento para no crecer
     
     // 4. Colisión con manzana
     if (positionEquals(newHead, gameState.apple)) {
@@ -313,11 +316,15 @@ function showMessage(text, className = '') {
  * Dibuja el tablero completo
  */
 function render() {
-    // Fondo del tablero
+    // Fondo del tablero (negro)
     ctx.fillStyle = CONFIG.COLORS.BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Grid sutil
+    // Fondo del área de juego (verde muy oscuro)
+    ctx.fillStyle = CONFIG.COLORS.BOARD;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Grid con patrón suave tipo jardín
     ctx.strokeStyle = CONFIG.COLORS.GRID;
     ctx.lineWidth = 0.5;
     
@@ -335,6 +342,20 @@ function render() {
         ctx.stroke();
     }
     
+    // Patrón decorativo sutil (líneas alternas más claras)
+    ctx.strokeStyle = CONFIG.COLORS.GRID_LIGHT;
+    ctx.lineWidth = 0.25;
+    ctx.globalAlpha = 0.3;
+    
+    for (let x = 0; x <= CONFIG.GRID_WIDTH; x += 2) {
+        ctx.beginPath();
+        ctx.moveTo(x * CONFIG.CELL_SIZE, 0);
+        ctx.lineTo(x * CONFIG.CELL_SIZE, canvas.height);
+        ctx.stroke();
+    }
+    
+    ctx.globalAlpha = 1;
+    
     // Dibujar trampas
     drawTraps();
     
@@ -346,23 +367,78 @@ function render() {
 }
 
 /**
- * Dibuja la serpiente
+ * Dibuja la serpiente con ojos y lengua en la cabeza
  */
 function drawSnake() {
-    ctx.fillStyle = CONFIG.COLORS.SNAKE;
-    
     gameState.snake.forEach((segment, index) => {
         const x = segment.x * CONFIG.CELL_SIZE;
         const y = segment.y * CONFIG.CELL_SIZE;
         
-        // La cabeza es ligeramente más definida
+        // Cabeza: color más claro
         if (index === 0) {
+            ctx.fillStyle = CONFIG.COLORS.SNAKE_HEAD;
             ctx.fillRect(x + 2, y + 2, CONFIG.CELL_SIZE - 4, CONFIG.CELL_SIZE - 4);
-            // Pequeño destello en la cabeza
-            ctx.fillStyle = '#22ff88';
-            ctx.fillRect(x + 5, y + 5, 4, 4);
-            ctx.fillStyle = CONFIG.COLORS.SNAKE;
+            
+            // Dibujar ojos según la dirección
+            ctx.fillStyle = '#000000';
+            const eyeSize = 3;
+            
+            if (gameState.direction.x === 1) {
+                // Moviendo a la derecha
+                ctx.fillRect(x + 18, y + 8, eyeSize, eyeSize);
+                ctx.fillRect(x + 18, y + 19, eyeSize, eyeSize);
+                // Lengua
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x + 25, y + 13);
+                ctx.lineTo(x + 28, y + 12);
+                ctx.lineTo(x + 28, y + 15);
+                ctx.closePath();
+                ctx.stroke();
+            } else if (gameState.direction.x === -1) {
+                // Moviendo a la izquierda
+                ctx.fillRect(x + 9, y + 8, eyeSize, eyeSize);
+                ctx.fillRect(x + 9, y + 19, eyeSize, eyeSize);
+                // Lengua
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x + 5, y + 13);
+                ctx.lineTo(x + 2, y + 12);
+                ctx.lineTo(x + 2, y + 15);
+                ctx.closePath();
+                ctx.stroke();
+            } else if (gameState.direction.y === -1) {
+                // Moviendo hacia arriba
+                ctx.fillRect(x + 8, y + 9, eyeSize, eyeSize);
+                ctx.fillRect(x + 19, y + 9, eyeSize, eyeSize);
+                // Lengua
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x + 13, y + 5);
+                ctx.lineTo(x + 12, y + 2);
+                ctx.lineTo(x + 15, y + 2);
+                ctx.closePath();
+                ctx.stroke();
+            } else if (gameState.direction.y === 1) {
+                // Moviendo hacia abajo
+                ctx.fillRect(x + 8, y + 18, eyeSize, eyeSize);
+                ctx.fillRect(x + 19, y + 18, eyeSize, eyeSize);
+                // Lengua
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x + 13, y + 25);
+                ctx.lineTo(x + 12, y + 28);
+                ctx.lineTo(x + 15, y + 28);
+                ctx.closePath();
+                ctx.stroke();
+            }
         } else {
+            // Cuerpo: color más oscuro
+            ctx.fillStyle = CONFIG.COLORS.SNAKE_BODY;
             ctx.fillRect(x + 3, y + 3, CONFIG.CELL_SIZE - 6, CONFIG.CELL_SIZE - 6);
         }
     });
@@ -379,17 +455,17 @@ function drawApple() {
     ctx.fillRect(x + 5, y + 5, CONFIG.CELL_SIZE - 10, CONFIG.CELL_SIZE - 10);
     
     // Pequeño brillo en la manzana
-    ctx.fillStyle = '#ff6666';
+    ctx.fillStyle = CONFIG.COLORS.APPLE_SHINE;
     ctx.fillRect(x + 8, y + 8, 4, 4);
 }
 
 /**
- * Dibuja las trampas
+ * Dibuja las trampas con estilo jardín
  */
 function drawTraps() {
     ctx.fillStyle = CONFIG.COLORS.TRAP;
     ctx.strokeStyle = CONFIG.COLORS.TRAP_BORDER;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     
     gameState.traps.forEach(trap => {
         const x = trap.x * CONFIG.CELL_SIZE;
