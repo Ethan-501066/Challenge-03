@@ -246,19 +246,17 @@ function endGame(reason) {
 }
 
 /**
- * Reinicia solo el nivel actual (sin perder progreso)
+ * Reinicia solo la serpiente (sin cambiar manzana ni trampas)
  */
 function resetLevel() {
     gameState.snake = [{ x: 7, y: 7 }];
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
-    gameState.apple = { x: 12, y: 7 };
     gameState.steps = 0;
     gameState.isGameOver = false;
     gameState.isPaused = false;
     
-    // Regenerar trampas para el nivel actual
-    generateTraps();
+    // La manzana y las trampas mantienen sus posiciones
     
     showMessage('Nivel reiniciado. Un movimiento por tecla.');
     updateDisplay();
