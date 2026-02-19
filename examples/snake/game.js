@@ -24,7 +24,7 @@ const CONFIG = {
     CELL_SIZE: 30,
     
     // Velocidad de juego (milisegundos entre actualizaciones)
-    GAME_SPEED: 150,
+    GAME_SPEED: 75,
     
     // Colores del juego
     COLORS: {
